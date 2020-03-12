@@ -79,6 +79,14 @@ end
 post "/rsvps/:id/update" do
     puts "params: #{params}"
 
+    # first find the event that rsvp'ing for
+    @rsvp = rsvps_table.where(id: params["id"]).to_a[0]
+    @event = events_table.where(id: @rsvp[:event_id]).to_a[0]
+    # next we want to insert a row in the rsvps table with the rsvp form data
+    rsvps_table.where(id: params["id"]).update(
+        comments: params["comments"],
+        going: params["going"]
+    )
     view "update_rsvp"
 end
 
@@ -102,12 +110,18 @@ end
 post "/users/create" do
     puts "params: #{params}"
 
-    users_table.insert(
-        name: params["name"],
-        email: params["email"],
-        password: BCrypt::Password.create(params["password"])
-    )
-    view "create_user"
+    # if there's already a user with this email, skip
+    existing_user = users_table.where(email: params["email"]).to_a[0]
+    if existing_user
+        view "error"
+    else
+        users_table.insert(
+            name: params["name"],
+            email: params["email"],
+            password: BCrypt::Password.create(params["password"])
+        )
+        view "create_user"
+    end
 end
 
 # display the login form (aka "new")
